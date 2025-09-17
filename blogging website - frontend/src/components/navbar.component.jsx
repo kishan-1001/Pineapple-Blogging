@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link ,Outlet} from "react-router-dom";
 import { useState } from "react";
 import logo from "../imgs/logo.png";
 
@@ -6,6 +6,7 @@ const Navbar = () => {
   const [searchBoxVisibility, setSearchBoxVisibility] = useState(false);
 
   return (
+    <>
     <nav className="navbar">
       <Link to="/" className="flex-none w-10">
         <img src={logo} className="w-full" alt="Logo" />
@@ -48,7 +49,10 @@ const Navbar = () => {
 
       </div>
     </nav>
+    <Outlet />
+    </>
   );
 };
 
 export default Navbar;
+
