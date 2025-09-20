@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import User from './Schema/User.js';
 import { nanoid } from 'nanoid';
+import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 const server = express();
 let PORT =3000;
@@ -11,14 +12,22 @@ let passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/; // regex for pass
 server.use(express.json());
 
 mongoose.connect(process.env.DB_LOCATION,{autoIndex:true});
-const formatDataToSend=(data)=>{
+const access_token=jwt({id:1},process.env.JWT_SECRET,{expiresIn:'1d'});
+
+
+
+const formatDataToSend=(user)=>{
+
+
+    const access_token=jwt.sign({id:user._id},process.env.SECRET_ACCESS_KEY);
+
     return {
-        
-        fullname:data.personal_info.fullname,
+        access_token,
+        fullname:user.personal_info.fullname,
      
-        username:data.personal_info.username,
+        username:user.personal_info.username,
         
-        profile_img:data.personal_info.profile_img,
+        profile_img:user.personal_info.profile_img,
         
     }
 }
@@ -70,6 +79,39 @@ server.post('/signup',(req,res)=>{
      })
 
 });
+
+server.post('/signin',(req,res)=>{
+
+    let {email,password}=req.body;
+    if(!email.length){
+        return res.status(403).json({error:"Enter a valid email"});
+    }
+    if(!password.length){
+        return res.status(403).json({error:"Enter a valid password"});
+    }
+    if(!emailRegex.test(email)){
+        return res.status(403).json({error:"Enter a valid email"});
+    }
+    if(!passwordRegex.test(password)){
+        return res.status(403).json({error:"Password must be between 6 to 20 characters long and contain at least one numeric digit, one uppercase and one lowercase letter"});
+    }
+    User.findOne({ 'personal_info.email': email })
+    .then(user => {
+        if (!user) {
+            return res.status(403).json({ error: "Invalid email or password" });
+        }
+        bcrypt.compare(password, user.personal_info.password, (err, result) => {
+            if (err || !result) {
+                return res.status(403).json({ error: "Invalid email or password" });
+            }
+            return res.status(200).json(formatDataToSend(user));
+        });
+    })
+    .catch(err => {
+        return res.status(500).json({ error: "Error signing in" });
+    });
+});
+
 server.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);
 });
